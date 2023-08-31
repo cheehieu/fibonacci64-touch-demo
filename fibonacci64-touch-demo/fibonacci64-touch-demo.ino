@@ -29,17 +29,23 @@ FASTLED_USING_NAMESPACE
 
 #include "Map.h"
 
-#define MILLI_AMPS         1400 // IMPORTANT: set the max milli-Amps of your power supply (4A = 4000mA)
+#define MILLI_AMPS         15*64 // IMPORTANT: set the max milli-Amps of your power supply (4A = 4000mA)
 #define FRAMES_PER_SECOND  120
 
 CRGB leds[NUM_LEDS];
 
-uint8_t brightness = 64;
+#define FULL_BRIGHTNESS 255
+#define HALF_BRIGHTNESS 128
+#define QUARTER_BRIGHTNESS 64
+uint8_t brightness = HALF_BRIGHTNESS; //FULL_BRIGHTNESS; //64;
 
+// A2, A3 captouch don't work on the XIAO SAMD21 board? (https://www.seeedstudio.com/blog/2020/07/20/how-to-make-a-fruit-piano-on-seeeduino-xiaos-q-touch-function-m/)
+// Fails getYLine() in Adafruit_FreeTouch lib... PA10 and PA11 not between 2-7
+// Use A6, A7 (PB8, PB9) instead
 Adafruit_FreeTouch touch0 = Adafruit_FreeTouch(A0, OVERSAMPLE_4, RESISTOR_0, FREQ_MODE_NONE);
 Adafruit_FreeTouch touch1 = Adafruit_FreeTouch(A1, OVERSAMPLE_4, RESISTOR_0, FREQ_MODE_NONE);
-Adafruit_FreeTouch touch2 = Adafruit_FreeTouch(A2, OVERSAMPLE_4, RESISTOR_0, FREQ_MODE_NONE);
-Adafruit_FreeTouch touch3 = Adafruit_FreeTouch(A3, OVERSAMPLE_4, RESISTOR_0, FREQ_MODE_NONE);
+Adafruit_FreeTouch touch2 = Adafruit_FreeTouch(A6, OVERSAMPLE_4, RESISTOR_0, FREQ_MODE_NONE);
+Adafruit_FreeTouch touch3 = Adafruit_FreeTouch(A7, OVERSAMPLE_4, RESISTOR_0, FREQ_MODE_NONE);
 
 #define touchPointCount 4
 
@@ -76,9 +82,13 @@ CRGBPalette16 gTargetPalette( gGradientPalettes[0] );
 // 20-120 is better for deployment
 uint8_t secondsPerPalette = 10;
 
+// Animation state control
+bool enableAnimations = false;
+uint8_t gTouchCounter = 0;
+
 void setup() {
   Serial.begin(115200);
-  //  delay(3000);
+//    delay(3000);
 
   if (!touch0.begin())
     Serial.println("Failed to begin qt on pin A0");
@@ -117,10 +127,13 @@ void loop() {
     nblendPaletteTowardPalette( gCurrentPalette, gTargetPalette, 8);
   }
 
-  if (!activeWaves)
-    colorWavesFibonacci();
-
-  touchDemo();
+  handleEnableAnimations();
+  if (enableAnimations) {
+    if (!activeWaves)
+      colorWavesFibonacci();
+  
+    touchDemo();
+  }
 
   // insert a delay to keep the framerate modest
   FastLED.delay(1000 / FRAMES_PER_SECOND);
@@ -176,6 +189,26 @@ void handleTouch() {
   //
   //    touchChanged = false;
   //  }
+}
+
+// Toggle LED animations when touch0 and touch1 are both touched simultaneously for a few seconds
+void handleEnableAnimations() {
+  if (touch[0] > 127 && touch[1] > 127) {
+    gTouchCounter += 1;
+
+    if (gTouchCounter > 100) {
+      if (!enableAnimations) {
+        Serial.println("Animations ENABLED!");
+        enableAnimations = true;
+      } else {
+        Serial.println("Animations DISABLED!");
+        enableAnimations = false;
+        FastLED.clear();
+      }
+
+      gTouchCounter = 0;
+    }
+  }
 }
 
 // adds a color to a pixel given it's XY coordinates and a "thickness" of the logical pixel
@@ -238,7 +271,7 @@ void drawCircle(int x0, int y0, int radius, const CRGB color, uint8_t thickness 
   }
 }
 
-const uint8_t waveCount = 8;
+const uint8_t waveCount = 15; //8;
 
 // track the XY coordinates and radius of each wave
 uint16_t radii[waveCount];
@@ -251,7 +284,7 @@ const uint16_t maxRadius = 512;
 void touchDemo() {
   // fade all of the LEDs a small amount each frame
   // increasing this number makes the waves fade faster
-  fadeToBlackBy(leds, NUM_LEDS, 30);
+  fadeToBlackBy(leds, NUM_LEDS, 23); //30
 
   for (uint8_t i = 0; i < touchPointCount; i++) {
     // start new waves when there's a new touch
@@ -268,7 +301,7 @@ void touchDemo() {
   for (uint8_t i = 0; i < waveCount; i++)
   {
     // increment radii if it's already been set in motion
-    if (radii[i] > 0 && radii[i] < maxRadius) radii[i] = radii[i] + 8;
+    if (radii[i] > 0 && radii[i] < maxRadius) radii[i] = radii[i] + 7; //8
 
     // reset waves already at max
     if (radii[i] >= maxRadius) {
