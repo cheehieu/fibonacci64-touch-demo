@@ -40,12 +40,11 @@ CRGB leds[NUM_LEDS];
 uint8_t brightness = HALF_BRIGHTNESS; //FULL_BRIGHTNESS; //64;
 
 // A2, A3 captouch don't work on the XIAO SAMD21 board? (https://www.seeedstudio.com/blog/2020/07/20/how-to-make-a-fruit-piano-on-seeeduino-xiaos-q-touch-function-m/)
-// Fails getYLine() in Adafruit_FreeTouch lib... PA10 and PA11 not between 2-7
-// Use A6, A7 (PB8, PB9) instead
-Adafruit_FreeTouch touch0 = Adafruit_FreeTouch(A0, OVERSAMPLE_4, RESISTOR_0, FREQ_MODE_NONE);
-Adafruit_FreeTouch touch1 = Adafruit_FreeTouch(A1, OVERSAMPLE_4, RESISTOR_0, FREQ_MODE_NONE);
-Adafruit_FreeTouch touch2 = Adafruit_FreeTouch(A6, OVERSAMPLE_4, RESISTOR_0, FREQ_MODE_NONE);
-Adafruit_FreeTouch touch3 = Adafruit_FreeTouch(A7, OVERSAMPLE_4, RESISTOR_0, FREQ_MODE_NONE);
+// Fails getYLine() in Adafruit_FreeTouch lib... PA10, PA11 not between 2-7... use A6, A7 (PB8, PB9) instead
+Adafruit_FreeTouch touch0 = Adafruit_FreeTouch(A0, OVERSAMPLE_4, RESISTOR_50K, FREQ_MODE_NONE);
+Adafruit_FreeTouch touch1 = Adafruit_FreeTouch(A1, OVERSAMPLE_4, RESISTOR_50K, FREQ_MODE_NONE);
+Adafruit_FreeTouch touch2 = Adafruit_FreeTouch(A6, OVERSAMPLE_4, RESISTOR_50K, FREQ_MODE_NONE);
+Adafruit_FreeTouch touch3 = Adafruit_FreeTouch(A7, OVERSAMPLE_4, RESISTOR_50K, FREQ_MODE_NONE);
 
 #define touchPointCount 4
 
@@ -127,6 +126,7 @@ void loop() {
     nblendPaletteTowardPalette( gCurrentPalette, gTargetPalette, 8);
   }
 
+  // Don't start animating immediately for power management/charging purposes
   handleEnableAnimations();
   if (enableAnimations) {
     if (!activeWaves)
@@ -195,6 +195,7 @@ void handleTouch() {
 void handleEnableAnimations() {
   if (touch[0] > 127 && touch[1] > 127) {
     gTouchCounter += 1;
+//    Serial.print(gTouchCounter);
 
     if (gTouchCounter > 100) {
       if (!enableAnimations) {
