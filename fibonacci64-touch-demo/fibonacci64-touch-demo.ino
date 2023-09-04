@@ -107,6 +107,7 @@ void setup() {
   FastLED.show();
 
   FastLED.setBrightness(brightness);
+  Serial.println("Ready!");
 }
 
 void loop() {
@@ -197,7 +198,7 @@ void handleEnableAnimations() {
     gTouchCounter += 1;
 //    Serial.print(gTouchCounter);
 
-    if (gTouchCounter > 100) {
+    if (gTouchCounter > 50) {
       if (!enableAnimations) {
         Serial.println("Animations ENABLED!");
         enableAnimations = true;
